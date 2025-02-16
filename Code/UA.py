@@ -76,6 +76,12 @@ class UA:
 
         return (a1-a2)/np.max(a1, a2)
 
+    def HSM(self, a1, a2, lambda_value=0.05):
+
+        ratio = a1/a2
+        hsm = np.mean(ratio > (1+lambda_value))
+        return hsm
+
     def plot_distribution(self, alternative):
 
         sns.histplot(self.data[alternative], kde=True)
