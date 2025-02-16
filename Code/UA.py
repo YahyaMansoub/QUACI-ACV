@@ -26,13 +26,16 @@ class UA:
 
     # Discernability Analysis
 
-    def DA(self, a1, a2):
+    def DA(self, diff):
         """
         The DA : returns the probability
                  that alternative 1 performs 
                  better than alternative 2
+        - I've made it so that it gets as 
+          input the difference matrix for efficienty
+          reasons.
         """
-        return np.mean(a1-a2 < 0)
+        return np.mean(diff < 0)
 
     # Ranking Probability : Probability of occurence of rankings
 
@@ -65,12 +68,26 @@ class UA:
             'quantiles': self.data[alt].quantile([0.25, 0.5, 0.75])
         }
 
-    def SMD(self, a1, a2):
-        diff = self.data[a1]-self.data[a2]
+    def SMD(self, D):
 
-        mean_diff = diff.mean()
-        std_diff = diff.std()
+        return D.mean()/D.std() if D.std() != 0 else 0
 
-        smd = mean_diff/std_diff if std_diff != 0 else 0
+    def DRD(self, a1, a2):
 
-        return self.data[a1]
+        return (a1-a2)/np.max(a1, a2)
+
+    def plot_distribution(self, alternative):
+
+        sns.histplot(self.data[alternative], kde=True)
+        plt.title(f'Distribution of {alternative}')
+        plt.xlabel('Impact Value')
+        plt.ylabel('Frequency')
+        plt.show()
+
+    def plot_relative_differences(self, alt1, alt2):
+
+        relative_diff = self.DRD(alt1, alt2)
+        sns.boxplot(relative_diff)
+        plt.title(f'Relative Differences between {alt1} and {alt2}')
+        plt.xlabel('Relative Difference')
+        plt.show()
