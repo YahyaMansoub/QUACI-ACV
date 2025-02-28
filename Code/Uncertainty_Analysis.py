@@ -20,6 +20,30 @@ class UA:
         alternative_matrix = self.data[alternative].values
         return alternative_matrix
 
+    def pairwise_matrix_differences(self):
+        """
+        Compute pairwise differences between all matrices stored in the UA instance.
+        Uses get_all_matrices to fetch the matrices directly.
+        """
+        # Fetch all matrices using get_all_matrices
+        matrix_dict = self.get_all_matrices()
+        result_dict = {}
+        matrix_keys = list(matrix_dict.keys())
+
+        for i in range(len(matrix_keys)):
+            for j in range(i + 1, len(matrix_keys)):  # Fix: Remove range() here
+                key1, key2 = matrix_keys[i], matrix_keys[j]
+                mat1, mat2 = matrix_dict[key1], matrix_dict[key2]
+
+                if mat1.shape != mat2.shape:
+                    raise ValueError(
+                        f"Matrices {key1} and {key2} must have the same shape for subtraction!"
+                    )
+
+                result_dict[(key1, key2)] = mat1 - mat2
+
+        return result_dict
+
     def get_all_matrices(self):
 
         return {alt: self.get_alternative_matrix(alt) for alt in self.alternatives}
@@ -75,6 +99,18 @@ class UA:
     def DRD(self, a1, a2):
 
         return (a1-a2)/np.max(a1, a2)
+
+    def compute_drd(self, matrix1, matrix2):
+
+        if matrix1.shape != matrix2.shape:
+            raise ValueError("Input matrices must have the same shape.")
+
+        max_impact = np.maximum(matrix1, matrix2)
+        max_impact[max_impact == 0] = 1  # To avoid division by zero
+        # Compute the DRD
+        drd_matrix = (matrix1 - matrix2) / max_impact
+
+        return drd_matrix
 
     def HSM(self, a1, a2, lambda_value=0.05):
 
