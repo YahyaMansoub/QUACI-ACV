@@ -94,11 +94,11 @@ class UA:
 
     def SMD(self, D):
 
-        return D.mean()/D.std() if D.std() != 0 else 0
+        return np.mean(D, axis=0)/np.std(D,axis=0) if np.std(D,axis=0) != 0 else 0
 
     def DRD(self, a1, a2):
 
-        return (a1-a2)/np.max(a1, a2)
+        return (a1-a2)/np.max(a1, a2) if np.max(a1,a2)!=0 else a1-a2
 
     def compute_drd(self, matrix1, matrix2):
 
