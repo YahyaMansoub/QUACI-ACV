@@ -1,4 +1,4 @@
-# web1
+# matrix-generator-frontend
 
 ## Project setup
 ```
