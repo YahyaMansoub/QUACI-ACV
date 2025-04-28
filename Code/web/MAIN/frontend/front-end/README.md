@@ -1,4 +1,4 @@
-# matrix-generator-frontend
+# front-end
 
 ## Project setup
 ```
