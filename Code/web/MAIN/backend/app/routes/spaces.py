@@ -5,6 +5,7 @@ import os
 
 spaces_bp = Blueprint('spaces', __name__, url_prefix='/api/spaces')
 
+
 @spaces_bp.route('', methods=['GET'])
 def get_spaces():
     # Fetch all spaces without filtering by user_id
@@ -15,6 +16,7 @@ def get_spaces():
         'factors': space.factors,
         'house_count': len(space.houses)
     } for space in spaces])
+
 
 @spaces_bp.route('', methods=['POST'])
 def create_space():
@@ -29,7 +31,6 @@ def create_space():
     db.session.add(new_space)
     db.session.commit()
     return jsonify({'id': new_space.id, 'name': new_space.name}), 201
-
 
 
 @spaces_bp.route('/<int:space_id>', methods=['GET'])

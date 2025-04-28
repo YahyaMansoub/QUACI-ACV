@@ -11,7 +11,7 @@ def create_app():
     # Create the Flask app
     app = Flask(__name__)
 
-    CORS(app)  # This will enable CORS for all routes
+    CORS(app)
 
     # Load the config from config.py
     app.config.from_object('app.config.Config')
@@ -19,7 +19,6 @@ def create_app():
     # Initialize the database with the app
     db.init_app(app)
 
-    
     # Import models here to ensure they are registered with the app before db.create_all()
     from .models import Space, House  # Import models
 
