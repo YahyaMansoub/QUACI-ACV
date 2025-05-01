@@ -37,16 +37,35 @@ def run_analysis(space_id):
 
 
 def _discernability_analysis(dfs):
-    # Implement discernability analysis logic
-    heatmap = {}
-    for house1_id, df1 in dfs.items():
-        heatmap[house1_id] = {}
-        for house2_id, df2 in dfs.items():
-            # Example: compare mean values
-            better_count = np.sum(df1.mean(axis=1) < df2.mean(axis=1))
-            probability = better_count / len(df1)
-            heatmap[house1_id][house2_id] = round(float(probability), 4)
-    return {'heatmap_data': heatmap}
+    # Get factor names from first house's dataframe
+    factors = list(dfs.values())[0].columns.tolist()
+
+    comparisons = []
+    house_ids = list(dfs.keys())
+
+    for i in range(len(house_ids)):
+        for j in range(i+1, len(house_ids)):
+            house1_id = house_ids[i]
+            house2_id = house_ids[j]
+            df1 = dfs[house1_id]
+            df2 = dfs[house2_id]
+
+            # Calculate probability for each factor
+            probabilities = []
+            for factor in factors:
+                better = np.mean(df1[factor] < df2[factor])
+                probabilities.append(float(better))
+
+            comparisons.append({
+                'house1': house1_id,
+                'house2': house2_id,
+                'values': probabilities
+            })
+
+    return {
+        'factors': factors,
+        'comparisons': comparisons
+    }
 
 
 def _heijungs_analysis(dfs):
