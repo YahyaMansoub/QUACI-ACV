@@ -1,4 +1,4 @@
-from flask import Flask
+from flask import Flask, jsonify
 from flask_sqlalchemy import SQLAlchemy
 from flask_cors import CORS
 
@@ -34,5 +34,15 @@ def create_app():
     app.register_blueprint(spaces_bp)
     app.register_blueprint(houses_bp)
     app.register_blueprint(analysis_bp)
+
+    # Route de base pour éviter le 404 sur '/'
+    @app.route('/')
+    def index():
+        return jsonify({'status':'OK','message':'API is running'}), 200
+
+    # Gérer favicon.ico pour éviter le 404
+    @app.route('/favicon.ico')
+    def favicon():
+        return '', 204
 
     return app

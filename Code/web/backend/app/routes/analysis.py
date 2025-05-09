@@ -2,12 +2,24 @@ from flask import Blueprint, request, jsonify
 from ..models import Space, House, db
 import pandas as pd
 import numpy as np
+from app.services.analysis_service import (
+    compute_smd,
+    compute_drd,
+    compute_pairwise_probabilities,
+    generate_heatmap_data,
+    discernability_analysis,
+    heijungs_analysis,
+    ranking_probability_analysis,
+    AnalysisService
+)
 
 analysis_bp = Blueprint('analysis', __name__, url_prefix='/api/analysis')
 
 
-@analysis_bp.route('/<int:space_id>', methods=['POST'])
+@analysis_bp.route('/<int:space_id>', methods=['GET', 'POST'])
 def run_analysis(space_id):
+    if request.method == 'GET':
+        return jsonify({'status':'OK','message':'Send a POST with house_ids & method'}), 200
     space = Space.query.get_or_404(space_id)
     data = request.get_json()
 
@@ -23,60 +35,89 @@ def run_analysis(space_id):
     # Load all CSVs into DataFrames
     dfs = {}
     for house in houses:
-        dfs[house.id] = pd.read_csv(house.file_path)
+        try:
+            dfs[house.id] = pd.read_csv(house.file_path)
+        except Exception as e:
+            return jsonify({'error': f'Failed to read CSV for house {house.id}: {str(e)}'}), 500
 
-    # Perform analysis
-    if data['method'] == 'discernability_analysis':
-        results = _discernability_analysis(dfs)
-    elif data['method'] == 'heijungs_metric':
-        results = _heijungs_analysis(dfs)
+    method = data['method']
+
+    if method == 'discernability_analysis':
+        results = discernability_analysis(dfs)
+    elif method == 'heijungs_metric':
+        results = heijungs_analysis(dfs)
+    elif method == 'ranking_probability':
+        results = ranking_probability_analysis(dfs)
+    elif method == 'smd_drd':
+        results = {}
+        house_ids = list(dfs.keys())
+        smd_results = []
+        drd_results = []
+
+        for i in range(len(house_ids)):
+            for j in range(i + 1, len(house_ids)):
+                id1, id2 = house_ids[i], house_ids[j]
+                df1, df2 = dfs[id1].values, dfs[id2].values
+
+                smd_df = compute_smd(df1, df2)
+                drd_df = compute_drd(df1, df2)
+
+                smd_results.append({
+                    'house1': id1,
+                    'house2': id2,
+                    'smd': smd_df.to_dict()
+                })
+
+                drd_results.append({
+                    'house1': id1,
+                    'house2': id2,
+                    'drd': drd_df.to_dict()
+                })
+
+        results['smd'] = smd_results
+        results['drd'] = drd_results
+    elif method == 'heatmap_data':
+        matrices = {house.id: df.values for house, df in dfs.items()}
+        results = generate_heatmap_data(matrices)
     else:
         return jsonify({'error': 'Invalid method'}), 400
 
     return jsonify(results)
 
 
-def _discernability_analysis(dfs):
-    # Get factor names from first house's dataframe
-    factors = list(dfs.values())[0].columns.tolist()
+@analysis_bp.route('/<int:house_id>/uncertainty', methods=['POST'])
+def run_uncertainty_analysis(house_id):
+    data = request.get_json() or {}
+    simulations = data.get('simulations', 1000)
 
-    comparisons = []
-    house_ids = list(dfs.keys())
+    results = AnalysisService.generate_uncertainty_analysis(house_id, simulations)
+    if results is None:
+        return jsonify({'error': 'House not found or invalid data'}), 404
 
-    for i in range(len(house_ids)):
-        for j in range(i+1, len(house_ids)):
-            house1_id = house_ids[i]
-            house2_id = house_ids[j]
-            df1 = dfs[house1_id]
-            df2 = dfs[house2_id]
-
-            # Calculate probability for each factor
-            probabilities = []
-            for factor in factors:
-                better = np.mean(df1[factor] < df2[factor])
-                probabilities.append(float(better))
-
-            comparisons.append({
-                'house1': house1_id,
-                'house2': house2_id,
-                'values': probabilities
-            })
-
-    return {
-        'factors': factors,
-        'comparisons': comparisons
-    }
+    return jsonify(results)
 
 
-def _heijungs_analysis(dfs):
-    # Implement Heijungs metric logic
-    metrics = {}
-    for house1_id, df1 in dfs.items():
-        metrics[house1_id] = {}
-        for house2_id, df2 in dfs.items():
-            # Example implementation
-            diff = df1.mean() - df2.mean()
-            std = np.sqrt(df1.var() + df2.var())
-            metric = np.mean(diff / std)
-            metrics[house1_id][house2_id] = round(float(metric), 4)
-    return {'heijungs_metrics': metrics}
+@analysis_bp.route('/materials/compare', methods=['POST'])
+def compare_materials():
+    data = request.get_json()
+    material_ids = data.get('material_ids')
+    impact_category = data.get('impact_category')
+
+    if not material_ids or not impact_category:
+        return jsonify({'error': 'Missing material_ids or impact_category'}), 400
+
+    results = AnalysisService.compare_materials(material_ids, impact_category)
+    return jsonify(results)
+
+
+@analysis_bp.route('/materials/environmental-impact', methods=['POST'])
+def calculate_environmental_impact():
+    data = request.get_json()
+    materials_data = data.get('materials_data')
+    lifespan = data.get('lifespan', 50)
+
+    if not materials_data:
+        return jsonify({'error': 'Missing materials_data'}), 400
+
+    results = AnalysisService.calculate_environmental_impact(materials_data, lifespan)
+    return jsonify(results)

@@ -1,6 +1,6 @@
 import { createRouter, createWebHistory } from 'vue-router'
-import DashBoard from '../components/DashBoard.vue'  // Verify component import
-import SpaceDetails from '../components/SpaceDetails.vue'
+import DashBoard from '../views/DashBoard.vue'  // Verify component import
+import SpaceDetails from '../views/SpaceDetails.vue'
 
 const routes = [
   {
