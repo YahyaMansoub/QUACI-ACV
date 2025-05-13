@@ -5,43 +5,43 @@ from ..models import Space, House, db
 import pandas as pd
 import os
 
-houses_bp = Blueprint('houses', __name__,
-                      url_prefix='/api/spaces/<int:space_id>/houses')
+houses_bp = Blueprint('houses', __name__, url_prefix='/api/spaces/<int:space_id>/houses')
 
 
 @houses_bp.route('', methods=['POST'])
 def upload_house(space_id):
     space = Space.query.get_or_404(space_id)
 
-    # Check CSV file
+    # Validate file presence
     if 'file' not in request.files:
         return jsonify({'error': 'No file uploaded'}), 400
 
     file = request.files['file']
-    if file.filename == '':
+    if not file or file.filename == '':
         return jsonify({'error': 'Empty filename'}), 400
+    if not file.filename.lower().endswith('.csv'):
+        return jsonify({'error': 'File must be a CSV'}), 400
 
-    # Validate CSV structure
+    # Validate CSV content
     try:
         df = pd.read_csv(file.stream)
         validate_csv_factors(df.columns.tolist(), space.factors)
-    except ValueError as e:
-        return jsonify({'error': str(e)}), 400
+    except Exception as e:
+        return jsonify({'error': f'Invalid CSV: {str(e)}'}), 400
 
-    # Get the absolute path for the 'instance/data' directory
-    file_dir = os.path.join(os.path.abspath(os.path.dirname(__file__)), '..', '..', 'instance', 'data')
+    # Define safe file path
+    base_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
+    file_dir = os.path.join(base_dir, 'instance', 'data')
+    os.makedirs(file_dir, exist_ok=True)
 
-    # Ensure the directory exists
-    if not os.path.exists(file_dir):
-        os.makedirs(file_dir)
-
-    # Save the file
     filename = secure_filename(f"{space_id}_{file.filename}")
     file_path = os.path.join(file_dir, filename)
-    file.stream.seek(0)  # Ensure the file stream is at the beginning
+
+    # Reset file stream and save
+    file.stream.seek(0)
     file.save(file_path)
 
-    # Create house record
+    # Save house in DB
     new_house = House(
         name=request.form.get('name', filename),
         space_id=space_id,
@@ -57,3 +57,20 @@ def upload_house(space_id):
         'name': new_house.name,
         'simulations': new_house.simulations_count
     }), 201
+
+
+@houses_bp.route('', methods=['GET'])
+def list_houses(space_id):
+    space = Space.query.get_or_404(space_id)
+    houses = House.query.filter_by(space_id=space.id).all()
+
+    return jsonify({
+        'houses': [
+            {
+                'id': h.id,
+                'name': h.name,
+                'simulations': h.simulations_count,
+                'factors': h.factors_count
+            } for h in houses
+        ]
+    })

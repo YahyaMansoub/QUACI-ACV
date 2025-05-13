@@ -8,7 +8,9 @@ import {
   getDRD,
   getDiscernability,
   getHeijungs,
-  getRankingProbabilities
+  getRankingProbabilities,
+  uploadCSV,
+  getUploadedResult
 } from '../services/api'
 
 export const useDashboardStore = defineStore('dashboard', {
@@ -23,20 +25,22 @@ export const useDashboardStore = defineStore('dashboard', {
     discern: null,
     heijungs: null,
     ranking: null,
+    uploadedResults: {},
     loading: {
       houses: false,
-      data: false
+      data: false,
+      upload: false
     },
     error: null
   }),
 
   actions: {
-    async fetchHouses() {
+    async fetchHouses(spaceId) {
       this.loading.houses = true
       this.error = null
       try {
-        const res = await getHouses()
-        this.houses = res.data || []
+        const res = await getHouses(spaceId)
+        this.houses = res.data?.houses || []
       } catch (e) {
         console.error('Error fetching houses:', e)
         this.error = e.message || 'Failed to load houses.'
@@ -78,12 +82,36 @@ export const useDashboardStore = defineStore('dashboard', {
         this.discern = discRes.data || null
         this.heijungs = heijRes.data || null
         this.ranking = rankRes.data || null
-
       } catch (e) {
         console.error('Error loading house data:', e)
         this.error = e.message || 'Failed to load house data.'
       } finally {
         this.loading.data = false
+      }
+    },
+
+    async uploadAndAnalyzeCSV(file) {
+      this.loading.upload = true
+      this.error = null
+      try {
+        const formData = new FormData()
+        formData.append('file', file)
+        await uploadCSV(formData)
+
+        const methods = ['discernability', 'heijungs', 'ranking', 'heatmap']
+        const results = {}
+
+        for (const method of methods) {
+          const res = await getUploadedResult(method)
+          results[method] = res.data[method]
+        }
+
+        this.uploadedResults = results
+      } catch (e) {
+        console.error('Upload or analysis failed:', e)
+        this.error = e.message || 'CSV processing failed.'
+      } finally {
+        this.loading.upload = false
       }
     }
   }

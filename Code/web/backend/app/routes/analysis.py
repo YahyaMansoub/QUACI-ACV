@@ -15,24 +15,18 @@ from app.services.analysis_service import (
 
 analysis_bp = Blueprint('analysis', __name__, url_prefix='/api/analysis')
 
-
-@analysis_bp.route('/<int:space_id>', methods=['GET', 'POST'])
+@analysis_bp.route('/<int:space_id>', methods=['POST'])
 def run_analysis(space_id):
-    if request.method == 'GET':
-        return jsonify({'status':'OK','message':'Send a POST with house_ids & method'}), 200
     space = Space.query.get_or_404(space_id)
     data = request.get_json()
 
-    # Validate input
     if not data or 'house_ids' not in data or 'method' not in data:
         return jsonify({'error': 'Missing house_ids or method'}), 400
 
-    # Load house data
     houses = House.query.filter(House.id.in_(data['house_ids'])).all()
     if len(houses) < 2:
         return jsonify({'error': 'Need at least 2 houses for comparison'}), 400
 
-    # Load all CSVs into DataFrames
     dfs = {}
     for house in houses:
         try:
@@ -58,16 +52,13 @@ def run_analysis(space_id):
             for j in range(i + 1, len(house_ids)):
                 id1, id2 = house_ids[i], house_ids[j]
                 df1, df2 = dfs[id1].values, dfs[id2].values
-
                 smd_df = compute_smd(df1, df2)
                 drd_df = compute_drd(df1, df2)
-
                 smd_results.append({
                     'house1': id1,
                     'house2': id2,
                     'smd': smd_df.to_dict()
                 })
-
                 drd_results.append({
                     'house1': id1,
                     'house2': id2,
@@ -121,3 +112,18 @@ def calculate_environmental_impact():
 
     results = AnalysisService.calculate_environmental_impact(materials_data, lifespan)
     return jsonify(results)
+
+
+@analysis_bp.route('/upload/results/drd', methods=['POST'])
+def upload_drd_results():
+    try:
+        files = request.files.getlist("files")
+        if not files or len(files) != 2:
+            return jsonify({"error": "Exactly two CSV files must be uploaded."}), 400
+
+        dfs = [pd.read_csv(file) for file in files]
+        df1, df2 = dfs[0].values, dfs[1].values
+        drd_df = compute_drd(df1, df2)
+        return jsonify({"drd": drd_df.to_dict(orient='records')})
+    except Exception as e:
+        return jsonify({"error": f"Analysis failed: {str(e)}"}), 500

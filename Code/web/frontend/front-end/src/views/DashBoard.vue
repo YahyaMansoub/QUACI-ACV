@@ -58,32 +58,32 @@
       <div class="space-y-8">
         <section v-if="discernOption">
           <h3 class="text-xl font-semibold text-gray-800 mb-4">Discernibility Matrix</h3>
-          <vue-echarts :option="discernOption" class="h-64" />
+          <vue-echarts v-if="chartOption && $el.clientWidth > 0" :option="discernOption" class="h-64" />
         </section>
 
         <section v-if="smdOption">
           <h3 class="text-xl font-semibold text-gray-800 mb-4">SMD Heatmap</h3>
-          <vue-echarts :option="smdOption" class="h-64" />
+          <vue-echarts v-if="chartOption && $el.clientWidth > 0" :option="smdOption" class="h-64" />
         </section>
 
         <section v-if="drdOption">
           <h3 class="text-xl font-semibold text-gray-800 mb-4">DRD Heatmap</h3>
-          <vue-echarts :option="drdOption" class="h-64" />
+          <vue-echarts v-if="chartOption && $el.clientWidth > 0" :option="drdOption" class="h-64" />
         </section>
 
         <section v-if="drdBoxOption">
           <h3 class="text-xl font-semibold text-gray-800 mb-4">DRD Boxplot</h3>
-          <vue-echarts :option="drdBoxOption" class="h-64" />
+          <vue-echarts v-if="chartOption && $el.clientWidth > 0" :option="drdBoxOption" class="h-64" />
         </section>
 
         <section v-if="heijungsOption">
           <h3 class="text-xl font-semibold text-gray-800 mb-4">Heijungs Significance</h3>
-          <vue-echarts :option="heijungsOption" class="h-64" />
+          <vue-echarts v-if="chartOption && $el.clientWidth > 0"  :option="heijungsOption" class="h-64" />
         </section>
 
         <section v-if="rankingOption">
           <h3 class="text-xl font-semibold text-gray-800 mb-4">Ranking Probabilities</h3>
-          <vue-echarts :option="rankingOption" class="h-64" />
+          <vue-echarts v-if="chartOption && $el.clientWidth > 0" :option="rankingOption" class="h-64" />
         </section>
       </div>
 

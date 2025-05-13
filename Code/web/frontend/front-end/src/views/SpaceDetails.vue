@@ -64,7 +64,7 @@ export default {
       tooltipStyle: {},
       houses: [],
       newHouseName: '',
-      space: { id: null, factors: [] },
+      space: { id: null, name: '', factors: [] },
       apiBaseUrl: 'http://localhost:5000/api',
       cellSize: 80,
       barColors: ['#1976d2', '#43a047', '#d32f2f', '#fbc02d', '#8e24aa', '#00897b', '#e64a19', '#7b1fa2', '#388e3c', '#c62828'],
@@ -116,6 +116,7 @@ export default {
 
   created() {
     this.space.id = this.$route?.params?.spaceId || null
+    if (!this.space.id) console.error('Missing spaceId in route')
   },
 
   async mounted() {
@@ -203,7 +204,7 @@ export default {
     async fetchHouses() {
       try {
         const { data } = await axios.get(`${this.apiBaseUrl}/spaces/${this.space.id}/houses`)
-        this.houses = data.houses
+        this.houses = data.houses || []
         this.updateBarChart()
       } catch (e) {
         console.error('Failed to fetch houses:', e)
@@ -216,6 +217,7 @@ export default {
         this.space = data
       } catch (e) {
         console.error('Failed to fetch space details:', e)
+        this.space = { id: this.space.id, name: 'Unknown', factors: [] }
       }
     },
 

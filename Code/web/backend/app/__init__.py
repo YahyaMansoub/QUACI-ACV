@@ -2,45 +2,45 @@ from flask import Flask, jsonify
 from flask_sqlalchemy import SQLAlchemy
 from flask_cors import CORS
 
-
-# Initialize the SQLAlchemy object
+# Initialize the SQLAlchemy object (will be bound later)
 db = SQLAlchemy()
-
 
 def create_app():
     # Create the Flask app
     app = Flask(__name__)
 
-    CORS(app)
+    # Apply CORS to all /api routes
+    CORS(app, resources={r"/api/*": {"origins": "*"}})
 
-    # Load the config from config.py
+    # Load configuration
     app.config.from_object('app.config.Config')
 
-    # Initialize the database with the app
+    # Initialize database with app
     db.init_app(app)
 
-    # Import models here to ensure they are registered with the app before db.create_all()
-    from .models import Space, House  # Import models
+    # Import models so SQLAlchemy knows about them
+    from .models import Space, House
 
-    # Create all database tables (this will create the tables defined by your models)
     with app.app_context():
-        db.create_all()  # Create tables if they don't exist
+        db.create_all()
 
     # Register blueprints
     from .routes.spaces import spaces_bp
     from .routes.houses import houses_bp
     from .routes.analysis import analysis_bp
+    from .routes.uploads import uploads_bp  # Optional: for custom CSV upload handling
 
     app.register_blueprint(spaces_bp)
     app.register_blueprint(houses_bp)
     app.register_blueprint(analysis_bp)
+    app.register_blueprint(uploads_bp)
 
-    # Route de base pour éviter le 404 sur '/'
+    # Default index route
     @app.route('/')
     def index():
-        return jsonify({'status':'OK','message':'API is running'}), 200
+        return jsonify({'status': 'OK', 'message': 'API is running'}), 200
 
-    # Gérer favicon.ico pour éviter le 404
+    # Avoid 404 for favicon.ico
     @app.route('/favicon.ico')
     def favicon():
         return '', 204

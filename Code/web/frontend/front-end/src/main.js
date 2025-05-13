@@ -1,29 +1,29 @@
-import { createApp } from 'vue';
-import App from './App.vue';
-import router from './router';
+import { createApp } from 'vue'
+import App from './App.vue'
+import router from './router'
 
-import VueECharts from 'vue-echarts';
-import { use, init } from 'echarts/core';
-
-// Optionally import and register only required ECharts modules
+import { createPinia } from 'pinia'
+import VueECharts from 'vue-echarts'
+import { use } from 'echarts/core'
+// Import only necessary ECharts modules
 import {
-  CanvasRenderer,
+  CanvasRenderer
 } from 'echarts/renderers';
 import {
   BarChart,
   LineChart,
   PieChart,
-  HeatmapChart,
+  HeatmapChart
 } from 'echarts/charts';
 import {
   GridComponent,
   TooltipComponent,
   VisualMapComponent,
   TitleComponent,
-  DatasetComponent,
+  DatasetComponent
 } from 'echarts/components';
 
-// Register the ECharts modules
+// Register ECharts modules globally
 use([
   CanvasRenderer,
   BarChart,
@@ -34,19 +34,12 @@ use([
   TooltipComponent,
   VisualMapComponent,
   TitleComponent,
-  DatasetComponent,
+  DatasetComponent
 ]);
 
-// Create the Vue app
-const app = createApp(App);
-
-// Register vue-echarts as a global component and provide the ECharts instance
-app.component('vue-echarts', VueECharts, {
-  init: (el) => init(el, null, { renderer: 'canvas' }),
-});
-
-// Use the router
-app.use(router);
-
-// Mount the app
-app.mount('#app');
+const app = createApp(App)
+const pinia = createPinia()             // ✅ this line is new
+app.use(pinia)                          // ✅ register pinia before using stores
+app.use(router)
+app.component('vue-echarts', VueECharts)
+app.mount('#app')

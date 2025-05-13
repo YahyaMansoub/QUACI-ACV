@@ -1,17 +1,20 @@
 import { createRouter, createWebHistory } from 'vue-router'
-import DashBoard from '../views/DashBoard.vue'  // Verify component import
-import SpaceDetails from '../views/SpaceDetails.vue'
+import DashBoard from '../views/DashBoard.vue'  // Keep this import
 
 const routes = [
   {
     path: '/',
-    name: 'DashBoard',
-    component: DashBoard  // Ensure correct component name
+    redirect: '/dashboard'
+  },
+  {
+    path: '/dashboard',
+    name: 'Dashboard',
+    component: DashBoard
   },
   {
     path: '/spaces/:spaceId',
     name: 'SpaceDetails',
-    component: SpaceDetails,
+    component: () => import('../views/SpaceDetails.vue'),
     props: true
   }
 ]
@@ -22,4 +25,3 @@ const router = createRouter({
 })
 
 export default router
-

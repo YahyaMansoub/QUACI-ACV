@@ -3,3 +3,4 @@
 from app import db
 from .space import Space
 from .house import House
+from .material import Material

@@ -1,5 +1,3 @@
-
-
 import numpy as np
 import pandas as pd
 from typing import List, Tuple, Dict, Union
@@ -55,15 +53,23 @@ class AnalysisService:
 
 
 def compute_smd(a1: np.ndarray, a2: np.ndarray) -> pd.DataFrame:
-    mean_diff = np.mean(a1 - a2, axis=0)
-    std_diff = np.std(a1 - a2, axis=0, ddof=1)
+    min_rows = min(a1.shape[0], a2.shape[0])
+    a1_trimmed = a1[:min_rows]
+    a2_trimmed = a2[:min_rows]
+
+    mean_diff = np.mean(a1_trimmed - a2_trimmed, axis=0)
+    std_diff = np.std(a1_trimmed - a2_trimmed, axis=0, ddof=1)
     smd = mean_diff / std_diff
-    std_error = std_diff / np.sqrt(a1.shape[0])
+    std_error = std_diff / np.sqrt(min_rows)
     return pd.DataFrame({'SMD': smd, 'StdError': std_error}, index=[f'Indicator {i+1}' for i in range(a1.shape[1])])
 
 
 def compute_drd(a1: np.ndarray, a2: np.ndarray) -> pd.DataFrame:
-    drd = (a1 - a2) / np.maximum(a1, a2)
+    min_rows = min(a1.shape[0], a2.shape[0])
+    a1_trimmed = a1[:min_rows]
+    a2_trimmed = a2[:min_rows]
+
+    drd = (a1_trimmed - a2_trimmed) / np.maximum(a1_trimmed, a2_trimmed)
     return pd.DataFrame(drd, columns=[f'Indicator {i+1}' for i in range(a1.shape[1])])
 
 
@@ -97,20 +103,29 @@ def discernability_analysis(dfs: Dict[int, pd.DataFrame]) -> Dict:
     factors = list(dfs.values())[0].columns.tolist()
     comparisons = []
     house_ids = list(dfs.keys())
+    heatmap_data = []
+    labels = []
 
     for i in range(len(house_ids)):
         for j in range(i+1, len(house_ids)):
             df1, df2 = dfs[house_ids[i]], dfs[house_ids[j]]
-            probabilities = [
-                float(np.mean(df1[factor] < df2[factor])) for factor in factors
-            ]
+            probabilities = [float(np.mean(df1[factor] < df2[factor])) for factor in factors]
             comparisons.append({
                 'house1': house_ids[i],
                 'house2': house_ids[j],
                 'values': probabilities
             })
+            labels.append(f"{house_ids[i]} vs {house_ids[j]}")
+            for f_idx, prob in enumerate(probabilities):
+                heatmap_data.append([len(labels)-1, f_idx, prob])
 
-    return {'factors': factors, 'comparisons': comparisons}
+    return {
+        'factors': factors,
+        'comparisons': comparisons,
+        'rows': labels,
+        'cols': factors,
+        'data': heatmap_data
+    }
 
 
 def heijungs_analysis(dfs: Dict[int, pd.DataFrame]) -> Dict:
@@ -141,4 +156,36 @@ def ranking_probability_analysis(dfs: Dict[int, pd.DataFrame]) -> Dict:
         for rank, (house_id, _) in enumerate(ranked, start=1):
             ranking_counts[rank][str(house_id)] += 1 / n_simulations
 
-    return {'house_ids': house_ids, 'ranking_probabilities': ranking_counts}
+    rows = [f"Rank {r}" for r in ranking_counts.keys()]
+    cols = [str(h) for h in house_ids]
+    heatmap_data = []
+    for r_idx, rank in enumerate(ranking_counts):
+        for c_idx, h in enumerate(house_ids):
+            prob = ranking_counts[rank][str(h)]
+            heatmap_data.append([r_idx, c_idx, prob])
+
+    return {
+        'house_ids': house_ids,
+        'ranking_probabilities': ranking_counts,
+        'rows': rows,
+        'cols': cols,
+        'data': heatmap_data
+    }
+
+
+def compute_median_iqr_for_radar(dfs: Dict[int, pd.DataFrame]) -> Dict:
+    result = {}
+    factors = list(dfs.values())[0].columns.tolist()
+
+    for house_id, df in dfs.items():
+        medians = df.median().tolist()
+        iqr = (df.quantile(0.75) - df.quantile(0.25)).tolist()
+        result[house_id] = {
+            'median': medians,
+            'iqr': iqr
+        }
+
+    return {
+        'factors': factors,
+        'values': result
+    }
