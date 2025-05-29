@@ -30,9 +30,11 @@ def create_app():
     from .routes.spaces import spaces_bp
     from .routes.houses import houses_bp
     from .routes.analysis import analysis_bp
+    from .routes.quaci_api import simulations_bp
 
     app.register_blueprint(spaces_bp)
     app.register_blueprint(houses_bp)
     app.register_blueprint(analysis_bp)
+    app.register_blueprint(simulations_bp)
 
     return app
